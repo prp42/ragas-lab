@@ -1,0 +1,15 @@
+services:
+  ragas-lab:
+    build: .
+    image: ragas-lab:local
+    container_name: ragas-lab
+    restart: unless-stopped
+    # Linux host networking: "localhost" inside the container is your computer,
+    # so DIFY_BASE_URL=http://localhost and Ollama on :11434 just work.
+    network_mode: host
+    env_file: .env
+    volumes:
+      - ragas-data:/srv/data
+
+volumes:
+  ragas-data:

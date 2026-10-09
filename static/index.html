@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RAGAS 실험실</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800&family=IBM+Plex+Sans+KR:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <div class="brand"><span class="eyebrow">14주차 · 평가·최적화 및 보안</span><b>RAGAS 실험실</b></div>
+    <div class="who" id="who" hidden>
+      <span class="mono" id="whoId"></span>
+      <span class="chip plain" id="quotaEval"></span>
+      <span class="chip plain" id="quotaAttack"></span>
+      <button type="button" class="link" id="logoutBtn">나가기</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="login" class="panel narrow" hidden>
+    <div class="stack">
+      <h1>내 RAG 앱을 숫자로 재 보기</h1>
+      <p class="muted">Dify 공유 링크와 질문 몇 개만 있으면 됩니다. 앱에 질문을 보내 답변과 검색 근거를 모으고, 판사 LLM이 RAGAS 4대 지표로 채점합니다.</p>
+      <form id="loginForm" class="stack">
+        <label for="classCode">수업 코드</label>
+        <input id="classCode" autocomplete="off" required>
+        <label for="studentId">학번</label>
+        <input id="studentId" autocomplete="off" pattern="[A-Za-z0-9_\-]{2,20}" required>
+        <p class="error" id="loginError" hidden></p>
+        <button type="submit" class="btn">시작하기</button>
+      </form>
+    </div>
+  </section>
+
+  <div id="appView" class="stack" hidden>
+    <nav class="tabs" role="tablist">
+      <button type="button" role="tab" class="tab on" data-tab="evalTab">평가 실행</button>
+      <button type="button" role="tab" class="tab" data-tab="historyTab">실행 기록</button>
+      <button type="button" role="tab" class="tab" data-tab="guardTab">가드레일 점검</button>
+    </nav>
+
+    <section id="evalTab" class="tabpane">
+      <div class="panel stack">
+        <div class="step-head"><span class="step">1</span><h2>RAG 앱 연결</h2></div>
+        <p class="muted">Dify에서 앱 → 게시(Publish) → <b>웹앱 열기(Run App)</b>의 주소를 붙여넣으세요. 검색 근거를 받으려면 앱의 Features에서 <b>Citations and Attributions</b>가 켜져 있어야 합니다.</p>
+        <div class="row">
+          <input id="link" class="grow" placeholder="http://localhost/chat/xxxxxxxxxxxxxxxx" autocomplete="off">
+          <button type="button" class="btn ghost" id="checkBtn">연결 확인</button>
+        </div>
+        <div id="checkResult" class="stack" hidden></div>
+      </div>
+
+      <div class="panel stack">
+        <div class="step-head"><span class="step">2</span><h2>평가셋 만들기</h2><span class="muted mono" id="qCount"></span></div>
+        <p class="muted">실제 사용자가 물을 법한 질문을 쓰세요. <b>정답</b>을 쓰면 검색 지표(Context Precision·Recall)까지 잽니다. 문서에 답이 없는 질문도 1~2개 넣어 보세요. 그때 정답은 비워 둡니다. <span class="slide">슬라이드 20</span></p>
+        <div id="qRows" class="qrows"></div>
+        <div class="row">
+          <button type="button" class="btn ghost" id="addRowBtn">질문 추가</button>
+          <button type="button" class="btn ghost" id="sampleBtn">예시 넣기 (OECD 수업 앱용)</button>
+          <button type="button" class="btn ghost" id="pasteToggle">표에서 붙여넣기</button>
+          <button type="button" class="btn ghost" id="clearBtn">모두 지우기</button>
+        </div>
+        <div id="pasteBox" class="stack" hidden>
+          <label for="pasteArea">엑셀·구글시트에서 "질문 | 정답" 두 열을 복사해 붙여넣으세요. 탭이나 쉼표로 구분합니다.</label>
+          <textarea id="pasteArea" rows="5"></textarea>
+          <div class="row"><button type="button" class="btn ghost" id="pasteApply">표에 넣기</button></div>
+        </div>
+      </div>
+
+      <div class="panel stack">
+        <div class="step-head"><span class="step">3</span><h2>측정하기</h2></div>
+        <p class="muted">질문 하나에 몇 초~수십 초가 걸립니다. 시작하면 페이지를 닫아도 계속 진행되고, 실행 기록에서 결과를 볼 수 있습니다. <b>한 번에 하나만 고치고 다시 재세요.</b> <span class="slide">슬라이드 48</span></p>
+        <div class="row"><button type="button" class="btn" id="runBtn">평가 시작</button><p class="error" id="runError" hidden></p></div>
+      </div>
+
+      <div id="runView" class="stack" hidden></div>
+    </section>
+
+    <section id="historyTab" class="tabpane" hidden>
+      <div class="panel stack">
+        <div class="row between"><h2>실행 기록</h2><button type="button" class="btn ghost" id="refreshBtn">새로고침</button></div>
+        <div class="scroll"><table id="historyTable"></table></div>
+      </div>
+      <div id="historyRun" class="stack"></div>
+    </section>
+
+    <section id="guardTab" class="tabpane" hidden>
+      <div class="panel stack">
+        <h2>공격 프롬프트로 가드레일 점검 <span class="slide">슬라이드 22–33</span></h2>
+        <p class="muted">평가 실행 탭에 입력한 앱으로 공격 프롬프트 5개를 보냅니다. 답변을 읽고 각 공격을 <b>막았는지</b> 직접 판정하세요. 레일을 추가한 뒤 다시 점검해 전후를 비교합니다.</p>
+        <ul class="attack-preview" id="attackPreview"></ul>
+        <div class="row"><button type="button" class="btn" id="attackBtn">점검 시작</button><p class="error" id="attackError" hidden></p></div>
+      </div>
+      <div id="attackView" class="stack"></div>
+    </section>
+  </div>
+</main>
+<footer class="wrap foot muted">결과는 판사 LLM의 판정이며 실행마다 조금씩 흔들립니다. 같은 평가셋으로 전후를 비교하세요. <span class="slide">슬라이드 19</span></footer>
+<script src="/static/app.js"></script>
+</body>
+</html>
